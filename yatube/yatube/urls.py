@@ -17,7 +17,6 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path('group/<slug:slug>/', include('group.urls')),
     path('', include('posts.urls')),
     path('admin/', admin.site.urls)
 ]
