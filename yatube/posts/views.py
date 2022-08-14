@@ -4,7 +4,7 @@ from django.shortcuts import render
 # Create your views here.
 
 def index(request):
-    template = '/templates/posts/index.html'
+    template = 'base.html'
     return render(request, template) 
 
 def group_posts(request, slug):
