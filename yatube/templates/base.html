@@ -9,19 +9,19 @@
     <link rel="icon" type="image/png" sizes="16x16" href="img/fav/favicon-16x16.png">
     <meta name="msapplication-TileColor" content="#000">
     <meta name="theme-color" content="#ffffff">
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    {% block title %}
-        Заголовок не задан
-    {% endblock %}       
+    <link rel="stylesheet" href="css/bootstrap.min.css">       
   </head>
   <body>       
     <header>
       {% include 'includes/header.html' %}
     </header>
     <main>
+      {% block title %}
+      {% include 'index.html' %}
+      {% endblock %}
       {% block content %}
-        Контент не подвезли :(
-      {% endblock content %}
+      {% include 'group_list.html'%}
+      {% endblock %}
     </main>
     <footer class="border-top text-center py-3">
       {% include 'includes/footer.html' %} 
