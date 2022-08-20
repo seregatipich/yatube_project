@@ -1,6 +1,5 @@
 {% extends 'base.html' %} 
-{%block title%}Посты группы{% endblock %} 
+{%block title%}{{ group }}{% endblock %} 
 {% block content %}
-<article>Post 1</article>
-<article>Post 2</article>
+{{ posts }}
 {% endblock %}
