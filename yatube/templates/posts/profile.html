@@ -3,7 +3,7 @@
 {% block content %}
       <div class="container py-5">
         <h1>Все посты пользователя {{ user.username }} </h1>
-        <h3>Всего постов: {{ count }} </h3>
+        <h3>Всего постов: {{ user.posts.all.count }} </h3>
         {% for post in page_obj %}
         <article>
           <ul>
@@ -23,11 +23,10 @@
           <a href="{% url 'posts:post_detail' post.id %}">подробная информация </a>
         </article>
         {% if post.group %}
-        <a href="{% url 'posts:group_list' post.group.slug %}">все записи группы</a>
+        <a href="{% url 'posts:group_posts' post.group.slug %}">все записи группы</a>
         {% endif %}
         <hr>
         {% endfor %}
-        <!-- Остальные посты. после последнего нет черты -->
         {% if not forloop.last %}{% endif %}
         {% include 'posts/includes/paginator.html' %}
       </div>

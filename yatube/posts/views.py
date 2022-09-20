@@ -1,20 +1,25 @@
 from django.core.paginator import Paginator
 from django.conf import settings
-from django.shortcuts import get_object_or_404, render
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
-from .models import Group, Post, User
+
 from .forms import PostForm
+from .models import Group, Post, User
+
+
 user = User()
 
-
 def index(request):
-    post_list = Post.objects.all()
-    paginator = Paginator(post_list, settings.POSTS_NUMBER)
+    posts: Post = Post.objects.all()
+    paginator = Paginator(posts, settings.POSTS_NUMBER)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'posts/index.html', {'page_obj': page_obj})
-
+    context = {
+        'posts': posts,
+        'page_obj': page_obj,
+        'page_title': 'Последние обновления на сайте',
+    }
+    return render(request, 'posts/index.html', context)
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
@@ -27,24 +32,29 @@ def group_posts(request, slug):
 
 
 def profile(request, username):
-    template = 'posts/profile.html'
-    user = get_object_or_404(User, username=username)
-    post_list = user.posts.all()
-    count = post_list.count()
-    paginator = Paginator(post_list, settings.POSTS_NUMBER)
+    author = get_object_or_404(User, username=username)
+    paginator = Paginator(author.posts.all(), settings.POSTS_NUMBER)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, template, {
-        'author': user, 'page_obj': page_obj, 'count': count})
+    context = {
+        'author': author,
+        'page_obj': page_obj,
+        'posts': author.posts.all(),
+    }
+    return render(request, 'posts/profile.html', context)
 
 
 def post_detail(request, post_id):
-    template = 'posts/post_detail.html'
-    post = get_object_or_404(Post, id=post_id)
-    count_post = post.author.posts.count()
-    return render(request, template, {
-        'post': post, 'count_post': count_post})
-
+    post = get_object_or_404(
+        Post.objects
+            .select_related('author')
+            .select_related('group'), id=post_id)
+    context = {
+        'post': post,
+        'id': post_id,
+        'page_title': post.text[:30],
+    }
+    return render(request, 'posts/post_detail.html', context)
 
 @login_required
 def post_create(request):
@@ -59,16 +69,24 @@ def post_create(request):
 
 @login_required
 def post_edit(request, post_id):
-    is_form_edit = True
-    post = get_object_or_404(Post, pk__iexact=post_id)
-    if post.author == request.user:
-        form = PostForm(request.POST or None,
-                        files=request.FILES or None, instance=post)
-        if form.is_valid():
-            post = form.save()
-            return redirect('posts:post_detail', post_id)
-        form = PostForm(instance=post)
-        return render(request, 'posts/post_create.html', {
-            'form': form, 'is_form_edit': is_form_edit, 'post': post})
-    else:
+    """Модуль отвечающий за страницу редактирования текста постов."""
+    post = get_object_or_404(Post, id=post_id)
+    form = PostForm(instance=post)
+    context = {
+        'form': form,
+        'is_edit': True,
+        'post': post,
+        'id': post_id
+    }
+    if request.user != post.author:
         return redirect('posts:post_detail', post_id)
+    if request.method != 'POST':
+        return render(request, 'posts/post_create.html', context)
+    form = PostForm(request.POST, instance=post)
+    if not form.is_valid():
+        return render(request, 'posts/post_create.html', context)
+    post.text = form.cleaned_data['text']
+    post.group = form.cleaned_data['group']
+    post.author = request.user
+    post.save()
+    return redirect('posts:post_detail', post_id)
