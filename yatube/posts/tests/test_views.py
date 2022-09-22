@@ -4,8 +4,9 @@ from django.urls import reverse
 from django import forms
 from django.conf import settings
 
-from posts.models import Group, Post
 from posts.forms import PostForm
+from posts.models import Group, Post
+
 
 User = get_user_model()
 per_page = settings.POSTS_NUMBER
@@ -15,6 +16,7 @@ class PostVIEWSTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """ Создаем тестовые экземпляры постов."""
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
@@ -44,6 +46,7 @@ class PostVIEWSTest(TestCase):
         cls.posts_prf = Post.objects.filter(author=cls.user).order_by('-id')
 
     def setUp(self):
+        """Создаем авторизованного и неавторизованного клиента"""
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
@@ -51,6 +54,9 @@ class PostVIEWSTest(TestCase):
         self.author_client.force_login(self.user)
 
     def test_pages_uses_correct_template(self):
+        """Проверка на соответствие URL-адреса
+        соответствующему шаблону.
+        """
         templates_page_names = {
             'posts/index.html': reverse('posts:index'),
             'posts/group_list.html':
@@ -74,6 +80,7 @@ class PostVIEWSTest(TestCase):
             self.assertTemplateUsed(response_aut, 'posts/post_create.html')
 
     def test_index_correct_context(self):
+        """Проверка контекста шаблона index.html."""
         response = self.guest_client.get(reverse('posts:index'))
         post = response.context['posts'].order_by('-id')
         for i in range(len(self.posts)):
@@ -81,6 +88,7 @@ class PostVIEWSTest(TestCase):
             self.assertEqual(post[i].id, self.posts[i].id)
 
     def test_group_correct_context(self):
+        """Проверка контекста шаблона group_list.html."""
         response = self.guest_client.get(reverse('posts:group_posts',
                                                  kwargs={
                                                      'slug': self.group.slug}))
@@ -92,6 +100,7 @@ class PostVIEWSTest(TestCase):
                              self.posts_gr[i].text)
 
     def test_profile_correct_context(self):
+        """Проверка контекста шаблона profile.html."""
         response = self.guest_client. \
             get(reverse('posts:profile',
                         kwargs={'username': self.user}))
@@ -103,6 +112,7 @@ class PostVIEWSTest(TestCase):
                              f'{self.posts[i].text}')
 
     def test_post_detail_correct_context(self):
+        """Проверка контекста шаблона post_detail.html."""
         for i in range(len(self.posts)):
             response = self.guest_client. \
                 get(reverse('posts:post_detail',
@@ -111,6 +121,7 @@ class PostVIEWSTest(TestCase):
             self.assertEqual(response.context['id'], self.posts[i].id)
 
     def posts_forms(self, response):
+        """Модуль проверки форм постов."""
         PostForm.fields = {'text': forms.fields.CharField,
                            'group': forms.fields.ChoiceField,
                            }
@@ -120,6 +131,7 @@ class PostVIEWSTest(TestCase):
                 self.assertIsInstance(form_field, expected)
 
     def test_post_edit_correct_form(self):
+        """Проверка формы редактирования поста."""
         for i in range(len(self.posts)):
             response = self.author_client. \
                 get(reverse('posts:post_edit',
@@ -130,10 +142,12 @@ class PostVIEWSTest(TestCase):
         self.posts_forms(response)
 
     def test_post_create_correct_form(self):
+        """Проверка формы создания поста."""
         response = self.authorized_client.get(reverse('posts:post_create'))
         self.posts_forms(response)
 
     def test_new_post_correct_context(self):
+        """Проверка нового поста."""
         response = self.author_client.get(reverse('posts:index'))
         new_post = response.context['posts'].order_by('-id')[0]
         self.assertEqual(new_post.text, self.posts[0].text)
@@ -161,6 +175,7 @@ class PaginatorViewsTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """ Создаем тестовые экземпляры постов."""
         super().setUpClass()
         cls.user = User.objects.create_user(username='Pagin')
         cls.pag_group = Group.objects.create(
@@ -178,12 +193,14 @@ class PaginatorViewsTest(TestCase):
         cls.pag_posts = Post.objects.all()
 
     def setUp(self):
+        """Создаем авторизованного и неавторизованного клиента"""
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         self.author_client = Client()
         self.author_client.force_login(self.user)
 
     def test_first_page_contains_ten_records(self):
+        """Проверка: количество постов на первой странице равно 10."""
         response = self.author_client.get(reverse('posts:index'))
         self.assertEqual(len(response.context['page_obj']), per_page)
 
@@ -198,6 +215,7 @@ class PaginatorViewsTest(TestCase):
         self.assertEqual(len(response.context['page_obj']), per_page)
 
     def test_second_page_contains_three_records(self):
+        """Проверка: количество постов на второй странице равно 3."""
         response = self.author_client.get(reverse('posts:index')
                                           + '?page=2')
         self.assertEqual(len(response.context['page_obj']),

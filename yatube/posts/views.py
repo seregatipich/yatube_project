@@ -9,6 +9,7 @@ from .models import Group, Post, User
 
 user = User()
 
+
 def index(request):
     posts: Post = Post.objects.all()
     paginator = Paginator(posts, settings.POSTS_NUMBER)
@@ -20,6 +21,7 @@ def index(request):
         'page_title': 'Последние обновления на сайте',
     }
     return render(request, 'posts/index.html', context)
+
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
@@ -55,6 +57,7 @@ def post_detail(request, post_id):
         'page_title': post.text[:30],
     }
     return render(request, 'posts/post_detail.html', context)
+
 
 @login_required
 def post_create(request):

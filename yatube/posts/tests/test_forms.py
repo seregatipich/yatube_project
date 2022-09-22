@@ -31,6 +31,7 @@ class PostsCreateFormTests(TestCase):
         self.authorized_client.force_login(self.user)
 
     def test_post_create(self):
+        """Добавляем пост в базу данных."""
         posts_count = Post.objects.count()
 
         form_data = {
@@ -58,6 +59,7 @@ class PostsCreateFormTests(TestCase):
                          form_data['group'])
 
     def test_post_edit(self):
+        """Редактируем пост в базе данных."""
         post1 = Post.objects.all()[0]
         response = self.guest_client.get(
             reverse('posts:post_edit', args=[post1.id])
