@@ -33,6 +33,14 @@ class PostURLTest(TestCase):
         self.authorized_client.force_login(self.user)
         self.author_client = Client()
         self.author_client.force_login(self.user)
+        self.redirect_urls = [
+            (reverse(
+                'posts:post_create'), '/auth/login/?next=/create/'),
+            (reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.id}),
+                f'/auth/login/?next=/posts/{self.post.id}/edit/')
+        ]
 
     def test_list_url_exists_at_desired_location(self):
         """Страница / доступна любому пользователю."""
@@ -64,12 +72,10 @@ class PostURLTest(TestCase):
             self.assertEqual(response.status_code, HTTPStatus.OK.value)
 
     def test_task_list_url_redirect_anonymous_on_admin_login(self):
-        """Адрес /create/ перенаправит анонимного пользователя
-        на страницу логина.
-        """
-        response = self.guest_client.get(reverse('posts:post_create'),
-                                         follow=True)
-        self.assertRedirects(response, '/auth/login/?next=/create/')
+        for url, address in self.redirect_urls:
+            with self.subTest(url=url):
+                response = self.guest_client.get(url, follow=True)
+                self.assertRedirects(response, address)
 
     def test_post_edit_to_login(self):
         """Адрес /posts/post_id/edit перенаправит анонимного пользователя

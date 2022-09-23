@@ -1,85 +1,83 @@
-from http import HTTPStatus
+import shutil
+import tempfile
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from ..models import Group, Post
 
-from posts.models import Post, Group
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 User = get_user_model()
 
 
-class PostsCreateFormTests(TestCase):
-
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class PostCreateFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='auth')
-        cls.new_group = Group.objects.create(
-            title='SuperNewGroupTitle',
-            slug='super_group_slug',
-            description='NewDescriptionSuperGroup'
+        cls.author = User.objects.create(username='TestUser')
+        cls.group = Group.objects.create(
+            title='Группа',
+            description='Описание поста',
+            slug='test-slug',
         )
-        Post.objects.create(
-            text='Super newest testing texxxxt',
-            author=cls.user,
+        cls.post = Post.objects.create(
+            author=cls.author,
+            text='Текст поста',
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
-        self.guest_client = Client()
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+        self.author_client = Client()
+        self.author_client.force_login(self.author)
 
-    def test_post_create(self):
-        """Добавляем пост в базу данных."""
+    def test_create_post(self):
         posts_count = Post.objects.count()
 
         form_data = {
-            'text': '#2 Super newest testing texxxxt',
-            'group': self.new_group.id,
+            'group': self.group.pk,
+            'text': self.post.text,
         }
-        response = self.guest_client.post(
+        response = self.author_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True
         )
-
-        self.assertRedirects(response, '/auth/login/?next=/create/')
-
-        response = self.authorized_client.post(
-            reverse('posts:post_create'),
-            data=form_data,
-            follow=True
+        self.assertRedirects(response, reverse(
+            'posts:profile', kwargs={
+                'username': PostCreateFormTests.post.author
+            }))
+        self.assertEqual(Post.objects.count(), posts_count + 1)
+        self.assertTrue(
+            Post.objects.filter(
+                group=self.group,
+                text=self.post.text,
+            ).exists()
         )
-        self.assertRedirects(response,
-                             reverse('posts:profile',
-                                     kwargs={'username': self.user.username}))
-        self.assertEqual(Post.objects.all().count(), posts_count + 1)
-        self.assertEqual(Post.objects.order_by('-id')[0].group.id,
-                         form_data['group'])
 
-    def test_post_edit(self):
-        """Редактируем пост в базе данных."""
-        post1 = Post.objects.all()[0]
-        response = self.guest_client.get(
-            reverse('posts:post_edit', args=[post1.id])
-        )
-        self.assertRedirects(response, '/auth/login/?next=/posts/1/edit/')
-
-        response = self.authorized_client.get(
-            reverse('posts:post_edit', args=[post1.id])
-        )
-        self.assertEqual(response.status_code, HTTPStatus.OK.value)
-
+    def test_edit_post(self):
+        tasks_count = Post.objects.count()
         form_data = {
-            'text': '#2 AfterEdit--Super newest testing texxxxt',
-            'group': self.new_group.id,
+            'group': self.group.pk,
+            'text': 'Отредактированный текст',
         }
-        response = self.authorized_client.post(
-            reverse('posts:post_edit', args=[post1.id]),
+        response = self.author_client.post(
+            reverse('posts:post_edit', args=[self.post.id]),
             data=form_data,
             follow=True
         )
-        self.assertRedirects(response, reverse('posts:post_detail',
-                                               args=[post1.id]))
-        self.assertEqual(form_data['text'], Post.objects.all()[0].text)
+        self.assertRedirects(response, reverse(
+            'posts:post_detail', args=[self.post.id]))
+        self.assertTrue(
+            Post.objects.filter(
+                group=PostCreateFormTests.group,
+                text='Отредактированный текст',
+            ).exists()
+        )
+        self.assertEqual(Post.objects.count(), tasks_count)
