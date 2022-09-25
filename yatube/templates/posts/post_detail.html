@@ -1,38 +1,75 @@
-{% extends "base.html" %}
-{% block title %} Пост {{ post.text|truncatechars:30 }} {% endblock %}
+{% extends 'base.html' %}
+{% load thumbnail %}
+{% block title %}
+    Пост {{ post.text|truncatechars:30 }}
+{% endblock %}
 {% block content %}
-      <div class="row">
-        <aside class="col-12 col-md-3">
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-              Дата публикации: {{ post.pub_date|date:"d E Y" }}
-            </li>
-            <!-- если у поста есть группа -->
-            <li class="list-group-item">
-              Группа: {{ post.group.title }}
-              {% if post.group %}
-              <a href="{% url 'posts:group_posts' post.group.slug %}">
-                все записи группы
-              </a>
-              {% endif %}
-            </li>
-            <li class="list-group-item">
-              Автор: {{ user.username }}
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              Всего постов автора:  <span> {{ post.author.posts.count }} </span>
-            </li>
-            <li class="list-group-item">
-              <a href="{% url 'posts:profile' post.author %}">
-                все посты пользователя
-              </a>
-            </li>
-          </ul>
-        </aside>
-        <article class="col-12 col-md-9">
+  <div class="row">
+    <aside class="col-sm-4">
+      <ul class="list-group-flush ">
+        <li class="list-group-item">
+        {% if post.author.get_full_name %}
+          <a href="{% url 'posts:profile' post.author.username %}">
+            {{ post.author.get_full_name }}
+          </a>
+        {% else %}
+          <a href="{% url 'posts:profile' post.author.username %}">
+            @{{ post.author }}
+          </a>
+        {% endif %}
+        </li>
+        {% if post.group %}
+        <br>
+        <li class="list-group-item">
+          <a href="{% url 'posts:group_posts' post.group.slug %}">
+            {{ post.group }}
+          </a>
+        </li>
+        {% endif %}
+        <br>
+        {% if post.author.following.count %}
+        <li class="list-group-item">
           <p>
-            {{ post.text }}
+            <span class="badge bg-black align-middle" style="color: black">{{ post.author.following.count }}</span>
+            | Всего подписчиков
           </p>
-        </article>
+        {% endif %}
+        {% if post.author.follower.count %}
+        <li class="list-group-item">
+          <p>
+            <span class="badge bg-black align-middle" style="color: black">{{ post.author.follower.count }}</span>
+            | Подписок
+          </p>
+        {% endif %}
+        <li class="list-group-item">
+          <p>
+            <span class="badge bg-black align-middle" style="color: black">{{ post.author.posts.count }}</span>
+            | Всего постов автора
+          </p>
+        </li>
+        <li class="list-group-item">
+          {% include 'posts/includes/follow_button.html' %}
+        </li>
+      </ul>
+    </aside>
+    <article class="col-sm-8">
+      <div class="clearfix">
+      {% thumbnail post.image "1280x840" crop="center" upscale=True as im %}
+        <img class="img-thumbnail col-md-5 float-md-start mx-md-3" src="{{ im.url }}">
+      {% endthumbnail %}
+        <p>{{ post.text|linebreaks }}</p>
       </div>
+      <div class="row align-content-center" style="height: 80px">
+        <div class="col-6 text-start" style="font-size: small">
+          {% if post.author == user %}
+            <a href="{% url 'posts:post_edit' post.id %}">редактировать</a>
+          {% endif %}
+        </div>
+        <div class="col-6 text-end" style="font-size: small">
+          {{ post.pub_date|date:"d M Y, G:i" }}
+        </div>
+      </div>
+    </article>
+  </div>
+{% include 'posts/add_comment.html' %}
 {% endblock %}
