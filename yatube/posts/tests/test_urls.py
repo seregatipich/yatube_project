@@ -1,108 +1,131 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
+from django.core.cache import cache
+from django.test import Client, TestCase
 from django.urls import reverse
 
-from posts.models import Group, Post
-
-User = get_user_model()
+from posts.models import Group, Post, User
 
 
-class PostURLTest(TestCase):
-
+class PostsURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
-        """ Создаем тестовые экземпляры постов."""
         super().setUpClass()
-        cls.user = User.objects.create_user(username='auth')
+        cls.user = User.objects.create_user(username='NoName')
+        cls.user2 = User.objects.create_user(username='NoName2')
         cls.group = Group.objects.create(
-            title='group',
-            slug='slug',
-            description='Тестовое описание'
+            title='Тестовое название группы',
+            slug='t_slug',
+            description='Тестовое описание группы',
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Хороший длинный тестовый текст поста',
+            text='Тестовое поле поста',
         )
+        cls.url_index = reverse(
+            'posts:index'
+        )
+        cls.url_profile = reverse(
+            'posts:profile', kwargs={'username': f'{cls.user}'}
+        )
+        cls.url_group = reverse(
+            'posts:group_posts', kwargs={'slug': f'{cls.group.slug}'}
+        )
+        cls.url_post = reverse(
+            'posts:post_detail', kwargs={'post_id': f'{cls.post.id}'}
+        )
+        cls.url_create = reverse(
+            'posts:post_create'
+        )
+        cls.url_edit = reverse(
+            'posts:post_edit', kwargs={'post_id': f'{cls.post.id}'}
+        )
+        cls.url_login = reverse(
+            'users:login'
+        )
+        cls.url_fake = '/fake_page/'
+        cls.ok = HTTPStatus.OK
+        cls.not_found = HTTPStatus.NOT_FOUND
 
     def setUp(self):
-        """Создаем авторизованного и неавторизованного клиента"""
         self.guest_client = Client()
         self.authorized_client = Client()
+        self.authorized_client2 = Client()
         self.authorized_client.force_login(self.user)
-        self.author_client = Client()
-        self.author_client.force_login(self.user)
-        self.redirect_urls = [
-            (reverse(
-                'posts:post_create'), '/auth/login/?next=/create/'),
-            (reverse(
-                'posts:post_edit',
-                kwargs={'post_id': self.post.id}),
-                f'/auth/login/?next=/posts/{self.post.id}/edit/')
-        ]
+        self.authorized_client2.force_login(self.user2)
+        cache.clear()
 
-    def test_list_url_exists_at_desired_location(self):
-        """Страница / доступна любому пользователю."""
-        urls = (reverse('posts:index'),
-                reverse('posts:group_posts',
-                        kwargs={'slug': self.group.slug}),
-                reverse('posts:profile',
-                        kwargs={'username': self.user.username}),
-                reverse('posts:post_detail', args=[self.post.id]),
-                )
-        for url in urls:
-            with self.subTest():
-                response = self.guest_client.get(url)
-                self.assertEqual(response.status_code, HTTPStatus.OK.value)
-        response = self.guest_client.get('/unexisting_page/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND.value)
-
-    def test_url_post_create(self):
-        """Страница /create/ доступна только авторизованному пользователю."""
-        response = self.authorized_client.get(reverse('posts:post_create'))
-        self.assertEqual(response.status_code, HTTPStatus.OK.value)
-
-    def test_url_post_edit(self):
-        """Страница /posts/post_id/edit доступна только автору поста."""
-        if self.user.username == self.post.author:
-            response = self.authorized_client. \
-                get(reverse('posts:post_edit',
-                            kwargs={'post_id': f'{self.post.id}'}))
-            self.assertEqual(response.status_code, HTTPStatus.OK.value)
-
-    def test_task_list_url_redirect_anonymous_on_admin_login(self):
-        for url, address in self.redirect_urls:
-            with self.subTest(url=url):
-                response = self.guest_client.get(url, follow=True)
-                self.assertRedirects(response, address)
-
-    def test_post_edit_to_login(self):
-        """Адрес /posts/post_id/edit перенаправит анонимного пользователя
-        на страницу авторизации.
+    def test_posts_urls_correct_response(self):
+        """Проверка доступности страниц приложения Posts
+        для всех и ответа 404 от несуществующих страниц.
         """
-        response = self.client. \
-            get(reverse('posts:post_edit',
-                        kwargs={'post_id': f'{self.post.id}'}), follow=True)
-        self.assertRedirects(response,
-                             f'/auth/login/?next=/posts/{self.post.id}/edit/')
-
-    def test_urls_uses_correct_template(self):
-        """Проверка соответствия URL-адреса и шаблона."""
-        templates_url_names = {
-            reverse('posts:index'):
-                'posts/index.html',
-            reverse('posts:group_posts', kwargs={'slug': self.group.slug}):
-                'posts/group_list.html',
-            reverse('posts:profile', kwargs={'username': self.user.username}):
-                'posts/profile.html',
-            reverse('posts:post_detail', args=[self.post.id]):
-                'posts/post_detail.html',
-            reverse('posts:post_create'): 'posts/post_create.html',
-            reverse('posts:post_edit', kwargs={'post_id': self.post.id}):
-                'posts/post_create.html',
+        urls_posts = {
+            self.url_index: self.ok,
+            self.url_group: self.ok,
+            self.url_profile: self.ok,
+            self.url_post: self.ok,
+            self.url_fake: self.not_found,
         }
-        for address, template in templates_url_names.items():
-            with self.subTest(address=address):
-                response = self.author_client.get(address)
-                self.assertTemplateUsed(response, template)
+        for reverse_name, expected_value in urls_posts.items():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.guest_client.get(reverse_name)
+                self.assertEqual(
+                    response.status_code, expected_value,
+                    f'страница {reverse_name} не отвечает'
+                )
+
+    def test_posts_urls_correct_response_authorized(self):
+        """Проверка доступности страниц приложения Posts
+        для авторизованного автора.
+        """
+        urls_posts = {
+            self.url_edit: self.ok,
+            self.url_create: self.ok,
+        }
+        for reverse_name, expected_value in urls_posts.items():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.authorized_client.get(reverse_name)
+                self.assertEqual(
+                    response.status_code, expected_value,
+                    f'страница {reverse_name} не отвечает'
+                )
+
+    def test_posts_urls_redirect_authorized(self):
+        """Проверка редиректа со страницы редактирования чужого поста
+        для авторизованного пользователя.
+        """
+        response = self.authorized_client2.get(
+            self.url_edit, follow=True
+        )
+        self.assertRedirects(response, self.url_post)
+
+    def test_posts_urls_redirect_anonymous(self):
+        """Проверка редиректа анонимного пользователя
+        со страницы '/posts/<int:post_id>/edit/' и '/create/'.
+        """
+        redirect_urls = {
+            self.url_edit: f'{self.url_login}?next={self.url_edit}',
+            self.url_create: f'{self.url_login}?next={self.url_create}',
+        }
+        for reverse_name, url in redirect_urls.items():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.guest_client.get(reverse_name, follow=True)
+                self.assertRedirects(response, url)
+
+    def test_posts_urls_uses_correct_template(self):
+        """Проверка шаблонов для страниц приложения Posts."""
+        template_urls_posts = {
+            self.url_create: 'posts/post_create.html',
+            self.url_group: 'posts/group_list.html',
+            self.url_index: 'posts/index.html',
+            self.url_post: 'posts/post_detail.html',
+            self.url_edit: 'posts/post_create.html',
+            self.url_profile: 'posts/profile.html',
+        }
+        for reverse_name, template in template_urls_posts.items():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.authorized_client.get(reverse_name)
+                self.assertTemplateUsed(
+                    response, template,
+                    f'не найден шаблон страницы {reverse_name}'
+                )

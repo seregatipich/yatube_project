@@ -45,7 +45,7 @@ class Post(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='posts',
-        verbose_name='author',
+        verbose_name='Автор поста',
         help_text='Выберите автора поста',
     )
     group = models.ForeignKey(
@@ -54,7 +54,7 @@ class Post(models.Model):
         null=True,
         on_delete=models.SET_NULL,
         related_name='posts',
-        verbose_name='group',
+        verbose_name='Группа',
         help_text=(
             'Группа, к которой будет относиться пост (необязательное поле)'
         ),

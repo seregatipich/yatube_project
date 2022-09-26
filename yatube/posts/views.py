@@ -11,18 +11,19 @@ from .models import Follow, Group, Post, User
 user = User()
 
 
+def paginator(request, queryset):
+    page = Paginator(queryset, settings.POSTS_NUMBER)
+    page_number = request.GET.get('page')
+    return page.get_page(page_number)
+
+
 @cache_page(20, key_prefix='index_page')
 def index(request):
-    posts: Post = Post.objects.all()
-    paginator = Paginator(posts, settings.POSTS_NUMBER)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    context = {
-        'posts': posts,
-        'page_obj': page_obj,
-        'page_title': 'Последние обновления на сайте',
-    }
-    return render(request, 'posts/index.html', context)
+    post_list = Post.objects.all()
+    page_obj = paginator(request, post_list)
+    template = 'posts/index.html'
+    context = {'page_obj': page_obj,}
+    return render(request, template, context)
 
 
 def group_posts(request, slug):
@@ -126,7 +127,7 @@ def follow_index(request):
     posts = Post.objects.filter(
         author__following__user=request.user
     )
-    page_obj = Paginator(request, posts)
+    page_obj = paginator(request, posts)
     template = 'posts/follow.html'
     context = {'page_obj': page_obj, }
     return render(request, template, context)
