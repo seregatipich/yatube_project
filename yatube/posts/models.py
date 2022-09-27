@@ -122,7 +122,7 @@ class Follow(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Подписка'
+        verbose_name = 'Подписки'
 
     def __str__(self):
         return self.text[:sl]
