@@ -6,6 +6,7 @@ from django.views.decorators.cache import cache_page
 
 from .forms import CommentForm, PostForm
 from .models import Follow, Group, Post, User
+from .constants import cacheTime, stringLength
 
 
 user = User()
@@ -17,12 +18,12 @@ def paginator(request, queryset):
     return page.get_page(page_number)
 
 
-@cache_page(20, key_prefix='index_page')
+@cache_page(cacheTime, key_prefix='index_page')
 def index(request):
     post_list = Post.objects.all()
     page_obj = paginator(request, post_list)
     template = 'posts/index.html'
-    context = {'page_obj': page_obj,}
+    context = {'page_obj': page_obj, }
     return render(request, template, context)
 
 
@@ -47,7 +48,6 @@ def profile(request, username):
     context = {
         'author': author,
         'page_obj': page_obj,
-        'posts': author.posts.all(),
         'following': following
     }
     return render(request, 'posts/profile.html', context)
@@ -68,7 +68,7 @@ def post_detail(request, post_id):
         'post': post,
         'id': post_id,
         'page_obj': comments_obj,
-        'page_title': post.text[:30],
+        'page_title': post.text[:stringLength*2],
         'form': form,
         'following': following,
         'author': post.author

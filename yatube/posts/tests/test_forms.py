@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from ..models import Comment, Post, User
 
-User = get_user_model()
+
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
@@ -56,6 +56,7 @@ class PostCreateFormTests(TestCase):
         self.comment = Comment.objects.first()
 
     def test_new_post_created_in_database(self):
+        '''Проверка создания поста в базе данных.'''
         posts_count = Post.objects.count()
 
         uploaded = SimpleUploadedFile(
@@ -84,6 +85,7 @@ class PostCreateFormTests(TestCase):
         )
 
     def test_post_edited_in_database(self):
+        '''Проверка редактирования поста в базе данных.'''
         posts_count = Post.objects.count()
 
         uploaded = SimpleUploadedFile(
@@ -110,6 +112,7 @@ class PostCreateFormTests(TestCase):
                          self.post.author.username)
 
     def test_new_comment_created_in_database(self):
+        '''Проверка создания комментария в базе данных.'''
         comment_count = Comment.objects.count()
         post_id = self.post.pk
         form_comment = {'text': 'Текст комментария'}
@@ -123,6 +126,7 @@ class PostCreateFormTests(TestCase):
         self.assertEqual(Comment.objects.count(), comment_count + 1)
 
     def test_new_comment_not_created_in_database(self):
+        '''у guest_client не должно быть возможности комментировать.'''
         comment_count = Comment.objects.count()
         post_id = self.post.pk
         form_comment = {

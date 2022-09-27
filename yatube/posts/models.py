@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
+from .constants import stringLength as sl
+
 
 User = get_user_model()
 
@@ -66,12 +68,12 @@ class Post(models.Model):
     )
 
     class Meta:
-        ordering = ['-pub_date']
+        ordering = ('-pub_date',)
         verbose_name = 'Пост'
         verbose_name_plural = 'Посты'
 
     def __str__(self):
-        return self.text[:15]
+        return self.text[:sl]
 
 
 class Comment(models.Model):
@@ -99,12 +101,12 @@ class Comment(models.Model):
     )
 
     class Meta:
-        ordering = ['created']
+        ordering = ('created',)
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return self.text[:15]
+        return self.text[:sl]
 
 
 class Follow(models.Model):
@@ -118,3 +120,9 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following'
     )
+
+    class Meta:
+        verbose_name = 'Подписка'
+
+    def __str__(self):
+        return self.text[:sl]

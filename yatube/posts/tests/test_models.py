@@ -1,6 +1,7 @@
 from django.test import TestCase
 
 from posts.models import Comment, Group, Post, User
+from ..constants import stringLength as sl
 
 
 class PostModelTests(TestCase):
@@ -34,7 +35,7 @@ class PostModelTests(TestCase):
     def test_str_post_function(self):
         """Проверяем, что, у модели Post, корректно работает __str__."""
         self.assertEqual(
-            self.post.text[:15],
+            self.post.text[:sl],
             str(self.post),
             'функция __str__ у модели Post работает неверно'
         )
@@ -42,7 +43,7 @@ class PostModelTests(TestCase):
     def test_str_comment_function(self):
         """Проверяем, что, у модели Comments, корректно работает __str__."""
         self.assertEqual(
-            self.comment.text[:15],
+            self.comment.text[:sl],
             str(self.comment),
             'функция __str__ у модели Post работает неверно'
         )
