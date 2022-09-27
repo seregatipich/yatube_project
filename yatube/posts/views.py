@@ -68,7 +68,7 @@ def post_detail(request, post_id):
         'post': post,
         'id': post_id,
         'page_obj': comments_obj,
-        'page_title': post.text[:stringLength*2],
+        'page_title': post.text[:stringLength * 2],
         'form': form,
         'following': following,
         'author': post.author
