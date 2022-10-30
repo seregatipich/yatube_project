@@ -1,17 +1,17 @@
 # yatube_project
-### Социальная сеть блогеров
-### Технологии
+### Social network for bloggers
+### Tech
 Python 3.10
 Django 2.2.19
-### Запуск проекта в dev-режиме
-- Установите и активируйте виртуальное окружение
-- Установите зависимости из файла requirements.txt
+### Project launch in dev mode
+- Install and activate venv
+- Install dependencies from requirements.txtЖ
 ```
 pip install -r requirements.txt
 ``` 
-- В папке с файлом manage.py выполните команду:
+- From directory containing manage.py execute:
 ```
 python manage.py runserver
 ```
-### Автор
+### Author
 seregatipich
